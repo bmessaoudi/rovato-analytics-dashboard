@@ -1,65 +1,87 @@
-import Image from "next/image";
+import { KpiCard } from "@/components/kpi-card";
+import { PopulationTrendChart } from "@/components/charts/population-trend-chart";
+import { PartyTrendChart } from "@/components/charts/party-trend-chart";
+import { TurnoutTrendChart } from "@/components/charts/turnout-trend-chart";
+import { CoalitionChart } from "@/components/charts/coalition-chart";
+import { data, formatNumber, formatPct } from "@/lib/data";
+import { Users, Home, Clock, Globe, TrendingUp, Vote } from "lucide-react";
 
-export default function Home() {
+export default function OverviewPage() {
+  const demo = data.demographics;
+  const lastPop = demo.population_trend[demo.population_trend.length - 1];
+  const lastTurnout = data.elections.turnout_trend.filter(
+    (t) => t.affluenza_pct != null
+  );
+  const latest = lastTurnout[lastTurnout.length - 1];
+  const eventsMap = Object.fromEntries(
+    data.elections.events.map((e) => [e.id, e])
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Panoramica</h2>
+        <p className="text-muted-foreground">
+          Comune di Rovato (BS) — Dati demografici ed elettorali
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <KpiCard
+          title="Popolazione"
+          value={formatNumber(lastPop.population)}
+          icon={Users}
+          subtitle={`Anno ${lastPop.year}`}
+          trend={
+            lastPop.var_pct != null
+              ? `${lastPop.var_pct > 0 ? "+" : ""}${lastPop.var_pct}% vs anno prec.`
+              : undefined
+          }
+          trendPositive={lastPop.var_pct != null ? lastPop.var_pct > 0 : undefined}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <KpiCard
+          title="Famiglie"
+          value={formatNumber(lastPop.families)}
+          icon={Home}
+          subtitle={`Media ${lastPop.avg_family_size} componenti`}
+        />
+        <KpiCard
+          title="Eta Media"
+          value={`${demo.snapshot.avg_age} anni`}
+          icon={Clock}
+          subtitle={`M: ${demo.snapshot.avg_age_male} — F: ${demo.snapshot.avg_age_female}`}
+        />
+        <KpiCard
+          title="Stranieri"
+          value={formatPct(demo.snapshot.foreigners_pct)}
+          icon={Globe}
+          subtitle={`${formatNumber(demo.snapshot.foreigners_total)} residenti`}
+        />
+        <KpiCard
+          title="Indice Vecchiaia"
+          value={demo.snapshot.aging_index.toFixed(1)}
+          icon={TrendingUp}
+          subtitle="> 100 = popolazione anziana"
+          trend={demo.snapshot.aging_index > 100 ? "Popolazione che invecchia" : "Popolazione giovane"}
+          trendPositive={demo.snapshot.aging_index <= 100}
+        />
+        <KpiCard
+          title="Ultima Affluenza"
+          value={latest?.affluenza_pct != null ? formatPct(latest.affluenza_pct) : "N/D"}
+          icon={Vote}
+          subtitle={eventsMap[latest?.election_id]?.short_name}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PopulationTrendChart mini />
+        <PartyTrendChart mini />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TurnoutTrendChart mini />
+        <CoalitionChart electionId="comunali_2020" mini />
+      </div>
     </div>
   );
 }
